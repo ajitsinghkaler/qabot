@@ -25,7 +25,4 @@ router.register(r"document", DocumentViewSet)
 router.register(r"user", UserViewSet)
 router.register(r"chat_messages", ChatViewSet)
 
-urlpatterns = [
-    path("", include(router.urls)),
-    path("admin", admin.site.urls)
-]
+urlpatterns = [path("api/", include(router.urls)), path("admin", admin.site.urls)]

@@ -1,8 +1,10 @@
 from qa.base import BaseModel
 from django.db import models
 
+
 class User(BaseModel):
     """Customer user object"""
+
     first_name = models.CharField(max_length=254, blank=False, null=False)
     last_name = models.CharField(max_length=254, blank=False, null=False)
 
@@ -23,23 +25,21 @@ class User(BaseModel):
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
 
+
 class Document(BaseModel):
     title = models.CharField(max_length=255, null=False, blank=False)
     owner = models.ForeignKey(
-        User, 
-        related_name="owner_files", on_delete=models.PROTECT, null=False
+        User, related_name="owner_files", on_delete=models.PROTECT, null=False
     )
-    path =  models.FileField(upload_to="documents/", null=False, blank=False)
-
+    file = models.FileField(upload_to="documents/", null=False, blank=False)
 
 
 class ChatHistory(BaseModel):
     sender = models.ForeignKey(
-        User, 
-        related_name="chat_sender", on_delete=models.PROTECT, null=False
+        User, related_name="chat_sender", on_delete=models.PROTECT, null=False
     )
     title = models.TextField()
-    
+
 
 class ChatMessage(BaseModel):
     content = models.TextField()
@@ -49,4 +49,5 @@ class ChatMessage(BaseModel):
         related_name="chat_history",
         on_delete=models.PROTECT,
         null=False,
+        default=1
     )

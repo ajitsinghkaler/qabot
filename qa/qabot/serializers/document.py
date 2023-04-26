@@ -4,10 +4,14 @@ from rest_framework import serializers
 from qabot.serializers.user import UserSerializer
 from qabot.models import Document
 
+
 class DocumentSerializer(BaseSerializer):
-    id = serializers.CharField(required=False)
-    title = serializers.CharField(required=True)
-    owner = UserSerializer()
-    path = serializers.FileField() 
     class Meta:
         model = Document
+        fields = '__all__'
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data.pop('owner')  # Remove the 'owner' field from the response
+        return data
+    

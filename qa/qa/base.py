@@ -5,6 +5,7 @@ from django.db import models
 from rest_framework.response import Response
 from rest_framework import viewsets, status, serializers
 
+
 class BaseModelViewSet(viewsets.ModelViewSet):
     def options(self, request, *args, **kwargs):
         """
@@ -42,8 +43,6 @@ class BaseModelViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
-
 class BaseModel(models.Model):
     """
     Base model that all models inherit from.
@@ -58,6 +57,7 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
 
 class BaseSerializer(serializers.ModelSerializer):
     def update(self, instance: object, validated_data: dict):
