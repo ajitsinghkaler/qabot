@@ -1,18 +1,19 @@
 import logging
 
-# from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from langchain.embeddings.openai import OpenAIEmbeddings
+
 
 from qa.base import BaseModelViewSet
+from qa.settings import db_directory
 from qabot.models import Document, User, ChatMessage, ChatHistory
 from qabot.serializers.chat_history import ChatHistorySerializer
 from qabot.serializers.chat_message import ChatMessageSerializer
 from qabot.serializers.user import UserSerializer
 from qabot.serializers.document import DocumentSerializer
-from qabot.utils.load_docs import load_docs
+from qabot.utils.load_docs_as_vector import load_docs_as_vector
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class DocumentViewSet(BaseModelViewSet):
             }
             serializer = DocumentSerializer(data=request_data)
             if serializer.is_valid():
+                load_docs_as_vector(file)
                 document = serializer.save()
                 return Response(
                     {
@@ -85,11 +87,13 @@ class ChatViewSet(BaseModelViewSet):
     def answer(self, request):
         try:
             question = request.data.get("question")
-            document_id = request.data.get("document_id")
-            document = Document.objects.get(id=document_id)
+            # document_id = request.data.get("document_id")
+            # document = Document.objects.get(id=document_id)
             # index = chroma_db.get_index(document_id)
             # answer = index.query(question)
             # print(answer)
+            embeddings = OpenAIEmbeddings()
+            vectordb = Chroma(persist_directory=db_directory, embedding_function=embeddings)
             return Response(
                 {
                     "status": "success",

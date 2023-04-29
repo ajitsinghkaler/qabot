@@ -142,3 +142,6 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # OpenAI GPT-3.5 settings
 openai_api_key = os.getenv('OPENAI_API_KEY')
+
+# Chroma Db settings
+db_directory = os.getenv('DB_DIRECTORY')
