@@ -4,7 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from langchain.embeddings.openai import OpenAIEmbeddings
-
+from langchain.vectorstores import Chroma
+from langchain.chains.question_answering import load_qa_chain
+from langchain.llms import OpenAI
 
 from qa.base import BaseModelViewSet
 from qa.settings import db_directory
@@ -87,19 +89,19 @@ class ChatViewSet(BaseModelViewSet):
     def answer(self, request):
         try:
             question = request.data.get("question")
-            # document_id = request.data.get("document_id")
-            # document = Document.objects.get(id=document_id)
-            # index = chroma_db.get_index(document_id)
-            # answer = index.query(question)
-            # print(answer)
             embeddings = OpenAIEmbeddings()
             vectordb = Chroma(persist_directory=db_directory, embedding_function=embeddings)
+            retriever = vectordb.as_retriever()
+            docs = retriever.get_relevant_documents(question)
+            chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff")
+            answer = chain.run(input_documents=docs, question=question)
+            print(answer)
             return Response(
                 {
                     "status": "success",
-                    "message": "File uploaded successfully",
+                    "answer": answer,
                 },
-                status=status.HTTP_201_CREATED,
+                status=status.HTTP_200_OK,
             )
         except Exception as e:
             log.error(e)
