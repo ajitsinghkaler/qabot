@@ -13,7 +13,7 @@ from qa.settings import db_directory
 from qabot.models import Document, User, ChatMessage, ChatHistory
 from qabot.serializers.chat_history import ChatHistorySerializer
 from qabot.serializers.chat_message import ChatMessageSerializer
-from qabot.serializers.user import UserSerializer
+# from qabot.serializers.user import UserSerializer
 from qabot.serializers.document import DocumentSerializer
 from qabot.utils.load_docs_as_vector import load_docs_as_vector
 
@@ -23,6 +23,7 @@ class DocumentViewSet(BaseModelViewSet):
     search_fields = ["name"]
     ordering_fields = ["name", "updated", "created"]
     queryset = Document.objects.all()
+    serializer_class = DocumentSerializer
 
     def create(self, request, *args, **kwargs):
         try:
@@ -95,7 +96,6 @@ class ChatViewSet(BaseModelViewSet):
             docs = retriever.get_relevant_documents(question)
             chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff")
             answer = chain.run(input_documents=docs, question=question)
-            print(answer)
             return Response(
                 {
                     "status": "success",

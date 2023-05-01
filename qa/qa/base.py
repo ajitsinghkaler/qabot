@@ -4,9 +4,12 @@ import uuid
 from django.db import models
 from rest_framework.response import Response
 from rest_framework import viewsets, status, serializers
-
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 class BaseModelViewSet(viewsets.ModelViewSet):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     def options(self, request, *args, **kwargs):
         """
         Self describing API. Allows for dynamic form generation.

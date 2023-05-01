@@ -16,6 +16,8 @@ boto3 = "^1.26.118"
 django-storages = {extras = ["boto3"], version = "^1.13.2"}
 unstructured = "^0.6.2"
 "pdfminer.six" = "^20221105"
+python-jose = "^3.3.0"
+djangorestframework-simplejwt = "^5.2.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

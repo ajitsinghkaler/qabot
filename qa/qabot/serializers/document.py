@@ -1,7 +1,7 @@
 from qa.base import BaseSerializer
 
 from rest_framework import serializers
-from qabot.serializers.user import UserSerializer
+# from qabot.serializers.user import UserSerializer
 from qabot.models import Document
 
 
