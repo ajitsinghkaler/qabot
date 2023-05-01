@@ -10,7 +10,7 @@ from langchain.llms import OpenAI
 
 from qa.base import BaseModelViewSet
 from qa.settings import db_directory
-from qabot.models import Document, User, ChatMessage, ChatHistory
+from qabot.models import Document, ChatMessage, ChatHistory
 from qabot.serializers.chat_history import ChatHistorySerializer
 from qabot.serializers.chat_message import ChatMessageSerializer
 # from qabot.serializers.user import UserSerializer
@@ -21,13 +21,14 @@ log = logging.getLogger(__name__)
 
 class DocumentViewSet(BaseModelViewSet):
     search_fields = ["name"]
-    ordering_fields = ["name", "updated", "created"]
+    ordering_fields = ["updated", "created"]
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
 
     def create(self, request, *args, **kwargs):
         try:
             file = request.FILES.get("file", None)
+            owner = request.data.get("owner", None)
             if not file:
                 return Response(
                     {"status": "failure", "message": "File not provided."},
@@ -35,17 +36,22 @@ class DocumentViewSet(BaseModelViewSet):
                 )
             request_data = {
                 "title": file.name,
-                "owner": request.data.get('owner', None),
+                "owner": owner,
                 "file": file,
             }
             serializer = DocumentSerializer(data=request_data)
-            if serializer.is_valid():
+            history_serializer = ChatHistorySerializer(
+                data={"sender": owner, "title": file.name}
+            )
+            if serializer.is_valid() and history_serializer.is_valid():
                 load_docs_as_vector(file)
                 document = serializer.save()
+                history = history_serializer.save()
                 return Response(
                     {
                         "status": "success",
                         "document": serializer.data,
+                        "history": history.id,
                         "message": "File uploaded successfully",
                     },
                     status=status.HTTP_201_CREATED,
@@ -67,35 +73,70 @@ class DocumentViewSet(BaseModelViewSet):
             )
 
 
-class UserViewSet(BaseModelViewSet):
-    queryset = User.objects.all()
+# class UserViewSet(BaseModelViewSet):
+#     queryset = User.objects.all()
 
 
 class ChatViewSet(BaseModelViewSet):
     queryset = ChatHistory.objects.all()
+    ordering_fields = ["updated", "created"]
+    serializer_class = ChatHistorySerializer
 
     def list(self, request):
-        queryset = ChatHistory.objects.filter(user_id=request.user.id)
+        queryset = ChatHistory.objects.filter(sender__id=request.query_params.get('id'))
         serializer = ChatHistorySerializer(queryset, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def history(self, request):
-        queryset = ChatMessage.objects.filter(ChatHistory_id=request.params.id)
-        serializer = ChatMessageSerializer(queryset, many=True)
+        try:
+            queryset = ChatMessage.objects.filter(
+                chat_history__id=request.query_params.get('id')
+            ).order_by("-created")
+            serializer = ChatMessageSerializer(queryset, many=True)
 
-        return Response(serializer.data)
+            return Response(
+                {"status": "success", "history": serializer.data},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            log.error(e)
+            return Response(
+                {"status": "failure", "message": "Question could not be answered"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(detail=False, methods=["post"])
     def answer(self, request):
         try:
             question = request.data.get("question")
+            chat_history = request.data.get("chat_history")
+            request_data = {
+                "user_generated": True,
+                "chat_history": chat_history,
+                "content": question,
+            }
+            serializer = ChatMessageSerializer(data=request_data)
+            # user_message = ChatMessage(
+            #     user_generated=True, chat_history=chat_history, content=question
+            # )
+
             embeddings = OpenAIEmbeddings()
-            vectordb = Chroma(persist_directory=db_directory, embedding_function=embeddings)
+            vectordb = Chroma(
+                persist_directory=db_directory, embedding_function=embeddings
+            )
             retriever = vectordb.as_retriever()
             docs = retriever.get_relevant_documents(question)
             chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff")
             answer = chain.run(input_documents=docs, question=question)
+            answer_data = {"chat_history": chat_history, "content": answer}
+            # openai_message = ChatMessage(chat_history=chat_history, content=answer)
+            answer_serializer = ChatMessageSerializer(data=answer_data)
+            if serializer.is_valid() and answer_serializer.is_valid():
+                serializer.save()
+                computer = answer_serializer.save()
+                print(computer)
+            
             return Response(
                 {
                     "status": "success",

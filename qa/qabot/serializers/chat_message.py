@@ -6,10 +6,11 @@ from qabot.models import ChatMessage
 
 
 class ChatMessageSerializer(BaseSerializer):
-    id = serializers.CharField(required=False)
-    content = serializers.CharField(required=True)
-    chat_history = ChatHistorySerializer()
-    user_generated = serializers.BooleanField(required=True)
+    # id = serializers.CharField(required=False)
+    # content = serializers.CharField(required=True)
+    # chat_history = ChatHistorySerializer()
+    # user_generated = serializers.BooleanField(required=True)
 
     class Meta:
         model = ChatMessage
+        fields = '__all__'

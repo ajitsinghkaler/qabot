@@ -18,11 +18,11 @@ from django.contrib import admin
 from django.urls import path
 from django.urls import include, path
 from rest_framework import routers
-from qabot.api import DocumentViewSet, UserViewSet, ChatViewSet
+from qabot.api import DocumentViewSet, ChatViewSet
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r"document", DocumentViewSet)
-router.register(r"user", UserViewSet)
+# router.register(r"user", UserViewSet)
 router.register(r"chat_messages", ChatViewSet)
 
 urlpatterns = [path("api/", include(router.urls)), path("admin", admin.site.urls)]
