@@ -7,7 +7,7 @@ class Auth0Backend(BaseBackend):
         if payload is None:
             return None
 
-        username = payload.get('sub', None)
+        username = payload.get('sub').replace('|', '.')
         if not username:
             return None
 

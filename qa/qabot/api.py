@@ -1,8 +1,18 @@
 import logging
 
-from rest_framework.decorators import action
+from rest_framework.decorators import (
+    action,
+    permission_classes,
+    authentication_classes,
+    api_view,
+)
 from rest_framework.response import Response
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from django.middleware.csrf import get_token
+from django.http import JsonResponse
+
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains.question_answering import load_qa_chain
@@ -13,11 +23,13 @@ from qa.settings import db_directory
 from qabot.models import Document, ChatMessage, ChatHistory
 from qabot.serializers.chat_history import ChatHistorySerializer
 from qabot.serializers.chat_message import ChatMessageSerializer
+
 # from qabot.serializers.user import UserSerializer
 from qabot.serializers.document import DocumentSerializer
 from qabot.utils.load_docs_as_vector import load_docs_as_vector
 
 log = logging.getLogger(__name__)
+
 
 class DocumentViewSet(BaseModelViewSet):
     search_fields = ["name"]
@@ -28,7 +40,8 @@ class DocumentViewSet(BaseModelViewSet):
     def create(self, request, *args, **kwargs):
         try:
             file = request.FILES.get("file", None)
-            owner = request.data.get("owner", None)
+            owner = request.user.id
+            # owner = request.data.get("owner", None)
             if not file:
                 return Response(
                     {"status": "failure", "message": "File not provided."},
@@ -83,7 +96,7 @@ class ChatViewSet(BaseModelViewSet):
     serializer_class = ChatHistorySerializer
 
     def list(self, request):
-        queryset = ChatHistory.objects.filter(sender__id=request.query_params.get('id'))
+        queryset = ChatHistory.objects.filter(sender__id=request.query_params.get("id"))
         serializer = ChatHistorySerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -91,7 +104,7 @@ class ChatViewSet(BaseModelViewSet):
     def history(self, request):
         try:
             queryset = ChatMessage.objects.filter(
-                chat_history__id=request.query_params.get('id')
+                chat_history__id=request.query_params.get("id")
             ).order_by("-created")
             serializer = ChatMessageSerializer(queryset, many=True)
 
@@ -136,7 +149,6 @@ class ChatViewSet(BaseModelViewSet):
                 serializer.save()
                 computer = answer_serializer.save()
                 print(computer)
-            
             return Response(
                 {
                     "status": "success",
@@ -150,3 +162,25 @@ class ChatViewSet(BaseModelViewSet):
                 {"status": "failure", "message": "Question could not be answered"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([SessionAuthentication])
+def csrf(request):
+    try:
+        return Response(
+            {"csrfToken": get_token(request)},
+            status=status.HTTP_200_OK,
+        )
+    except Exception as e:
+        log.error(e)
+        return Response(
+            {
+                "status": "failure",
+                "message": "A problem occured while getting the token",
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+def ping(request):
+    return JsonResponse({"result": "OK"}, status=status.HTTP_200_OK)
