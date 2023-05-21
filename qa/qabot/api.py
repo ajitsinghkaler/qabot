@@ -53,18 +53,14 @@ class DocumentViewSet(BaseModelViewSet):
                 "file": file,
             }
             serializer = DocumentSerializer(data=request_data)
-            history_serializer = ChatHistorySerializer(
-                data={"sender": owner, "title": file.name}
-            )
-            if serializer.is_valid() and history_serializer.is_valid():
+            
+            if serializer.is_valid():
                 load_docs_as_vector(file)
                 document = serializer.save()
-                history = history_serializer.save()
                 return Response(
                     {
                         "status": "success",
                         "document": serializer.data,
-                        "history": history.id,
                         "message": "File uploaded successfully",
                     },
                     status=status.HTTP_201_CREATED,
@@ -96,7 +92,7 @@ class ChatViewSet(BaseModelViewSet):
     serializer_class = ChatHistorySerializer
 
     def list(self, request):
-        queryset = ChatHistory.objects.filter(sender__id=request.query_params.get("id"))
+        queryset = ChatHistory.objects.filter(sender=request.user.id)
         serializer = ChatHistorySerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -123,12 +119,21 @@ class ChatViewSet(BaseModelViewSet):
     def answer(self, request):
         try:
             question = request.data.get("question")
-            chat_history = request.data.get("chat_history")
+            chat_history = request.data.get("history")
+            owner = request.user.id
+            title = request.data.get("title")
+            if not chat_history:
+                history_serializer = ChatHistorySerializer(
+                    data={"sender": owner, "title": title}
+                )
+                history_serializer.is_valid()
+                history = history_serializer.save()
             request_data = {
                 "user_generated": True,
                 "chat_history": chat_history,
                 "content": question,
             }
+
             serializer = ChatMessageSerializer(data=request_data)
             # user_message = ChatMessage(
             #     user_generated=True, chat_history=chat_history, content=question
@@ -153,6 +158,7 @@ class ChatViewSet(BaseModelViewSet):
                 {
                     "status": "success",
                     "answer": answer,
+                    "history": (chat_history or history.id)
                 },
                 status=status.HTTP_200_OK,
             )
