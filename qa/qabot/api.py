@@ -37,6 +37,13 @@ class DocumentViewSet(BaseModelViewSet):
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
 
+
+    def list(self, request):
+        queryset = Document.objects.filter(owner=request.user.id).order_by("-created")
+        serializer = DocumentSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    
     def create(self, request, *args, **kwargs):
         try:
             file = request.FILES.get("file", None)
@@ -92,7 +99,7 @@ class ChatViewSet(BaseModelViewSet):
     serializer_class = ChatHistorySerializer
 
     def list(self, request):
-        queryset = ChatHistory.objects.filter(sender=request.user.id)
+        queryset = ChatHistory.objects.filter(sender=request.user.id).order_by("-created")
         serializer = ChatHistorySerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -100,8 +107,9 @@ class ChatViewSet(BaseModelViewSet):
     def history(self, request):
         try:
             queryset = ChatMessage.objects.filter(
-                chat_history__id=request.query_params.get("id")
-            ).order_by("-created")
+                chat_history__id=request.query_params.get("id"),
+                chat_history__sender=request.user.id,
+            ).order_by("created")
             serializer = ChatMessageSerializer(queryset, many=True)
 
             return Response(
@@ -118,16 +126,16 @@ class ChatViewSet(BaseModelViewSet):
     @action(detail=False, methods=["post"])
     def answer(self, request):
         try:
-            question = request.data.get("question")
-            chat_history = request.data.get("history")
+            question = request.data.get("content")
+            chat_history = request.data.get("chat_history")
             owner = request.user.id
-            title = request.data.get("title")
+            title = request.data.get("title") or "Untitled"
             if not chat_history:
                 history_serializer = ChatHistorySerializer(
                     data={"sender": owner, "title": title}
                 )
-                history_serializer.is_valid()
-                history = history_serializer.save()
+                if history_serializer.is_valid():
+                    history = history_serializer.save()
             request_data = {
                 "user_generated": True,
                 "chat_history": chat_history,
@@ -135,6 +143,8 @@ class ChatViewSet(BaseModelViewSet):
             }
 
             serializer = ChatMessageSerializer(data=request_data)
+            if serializer.is_valid():
+                serializer.save()
             # user_message = ChatMessage(
             #     user_generated=True, chat_history=chat_history, content=question
             # )
@@ -150,10 +160,8 @@ class ChatViewSet(BaseModelViewSet):
             answer_data = {"chat_history": chat_history, "content": answer}
             # openai_message = ChatMessage(chat_history=chat_history, content=answer)
             answer_serializer = ChatMessageSerializer(data=answer_data)
-            if serializer.is_valid() and answer_serializer.is_valid():
-                serializer.save()
+            if answer_serializer.is_valid():
                 computer = answer_serializer.save()
-                print(computer)
             return Response(
                 {
                     "status": "success",

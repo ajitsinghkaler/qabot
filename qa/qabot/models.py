@@ -47,7 +47,7 @@ class ChatMessage(BaseModel):
     chat_history = models.ForeignKey(
         ChatHistory,
         related_name="chat_history",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         null=False,
         default=1
     )
