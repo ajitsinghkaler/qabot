@@ -1,5 +1,7 @@
 qa/.env
+qa/.env.prod
 .DS_STORE
 /**/__pycache__
 qa/db.sqlite3
 qa/db/
+qa/path

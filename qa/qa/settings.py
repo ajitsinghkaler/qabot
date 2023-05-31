@@ -184,3 +184,12 @@ AUTHENTICATION_BACKENDS = [
 
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
 AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE")
+
+# QDRANT_HOST = os.getenv("QDRANT_HOST")
+# QDRANT_API_KEY = os.getenv("QDRANT_API_KEY",  None)
+
+# QDRANT_CLIENT = qdrant_client.QdrantClient(
+#     url=QDRANT_HOST, prefer_grpc=True, api_key=QDRANT_API_KEY
+# )
+
+# Qdrant = Qdrant(client=QDRANT_CLIENT)
